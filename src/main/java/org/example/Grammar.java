@@ -2,131 +2,151 @@ package org.example;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
+/** Represents a context-free grammar. */
 public class Grammar {
 
-    private final List<Character> Vn;
+  private final List<Character> Vn;
 
-    private final List<Character> Vt;
+  private final List<Character> Vt;
 
-    private final List<String> P;
+  private final Map<Character, List<String>> productions;
 
-    private final char S;
+  private final Map<Character, List<String>> productionsTerminals;
 
-    public Grammar() {
-        this.Vn = List.of('S', 'A', 'B');
-        this.Vt = List.of('a', 'b', 'c', 'd');
-        this.P = List.of("bS", "dA", "aA", "dB", "cB", "b", "a");
-        this.S = 'S';
+  private final char S;
+
+  public Grammar() {
+    this.Vn = List.of('S', 'A', 'B');
+    this.Vt = List.of('a', 'b', 'c', 'd');
+    this.productions =
+        Map.of(
+            'S', List.of("bS", "dA"),
+            'A', List.of("aA", "dB"),
+            'B', List.of("cB"));
+    this.productionsTerminals =
+        Map.of(
+            'A', List.of("b"),
+            'B', List.of("a"));
+
+    this.S = 'S';
+  }
+
+  /**
+   * Generates a string based on the grammar.
+   *
+   * @return the generated string
+   */
+  public String generateString() {
+    StringBuilder word = new StringBuilder();
+    Random random = new Random();
+    word.append(S);
+
+    while (word.toString().matches(".*[SAB].*")) {
+      for (int i = 0; i < word.length(); i++) {
+        char currentChar = word.charAt(i);
+        if (Vn.contains(currentChar)) {
+          List<String> possibleProductions = productions.getOrDefault(currentChar, List.of());
+          List<String> terminalProductions =
+              productionsTerminals.getOrDefault(currentChar, List.of());
+
+          possibleProductions = new java.util.ArrayList<>(possibleProductions);
+          possibleProductions.addAll(terminalProductions);
+
+          if (!possibleProductions.isEmpty()) {
+            String chosenProduction =
+                possibleProductions.get(random.nextInt(possibleProductions.size()));
+            word.replace(i, i + 1, chosenProduction);
+            break;
+          }
+        }
+      }
     }
 
-    public String generateString() {
-        StringBuilder word = new StringBuilder();
-        Random random = new Random();
-        word.append('S');
+    return word.toString();
+  }
 
-        while (word.indexOf("S") != -1 || word.indexOf("A") != -1 || word.indexOf("B") != -1) {
-            if (word.indexOf("S") != -1) {
-                int index = word.indexOf("S");
-                if (random.nextBoolean()) {
-                    word.replace(index, index + 1, "bS");
-                } else {
-                    word.replace(index, index + 1, "dA");
-                }
-            }
-            if (word.indexOf("A") != -1) {
-                int index = word.indexOf("A");
-                int choice = random.nextInt(3);
-                if (choice == 0) {
-                    word.replace(index, index + 1, "aA");
-                } else if (choice == 1) {
-                    word.replace(index, index + 1, "dB");
-                } else {
-                    word.replace(index, index + 1, "b");
-                }
-            }
-            if (word.indexOf("B") != -1) {
-                int index = word.indexOf("B");
-                if (random.nextBoolean()) {
-                    word.replace(index, index + 1, "cB");
-                } else {
-                    word.replace(index, index + 1, "a");
-                }
-            }
+  /**
+   * Generates a string based on the grammar and shows the progression of the string.
+   *
+   * @return the generated string
+   */
+  public String generateStringWithProgression() {
+    StringBuilder word = new StringBuilder(String.valueOf(S));
+    StringBuilder progression = new StringBuilder(String.valueOf(S));
+    final int MIN_STEPS = 15;
+    final int MAX_STEPS = 20;
+    Random random = new Random();
+
+    int step = 0;
+    while (step < MAX_STEPS) {
+      boolean replaced = false;
+      for (int i = 0; i < word.length(); i++) {
+        char currentChar = word.charAt(i);
+        if (Vn.contains(currentChar)) {
+          List<String> possibleProductions =
+              new java.util.ArrayList<>(productions.getOrDefault(currentChar, List.of()));
+
+          if (step >= MIN_STEPS - 1 && step < MAX_STEPS) {
+            possibleProductions.addAll(productionsTerminals.getOrDefault(currentChar, List.of()));
+          }
+
+          if (!possibleProductions.isEmpty()) {
+            String chosenProduction =
+                possibleProductions.get(random.nextInt(possibleProductions.size()));
+            word.replace(i, i + 1, chosenProduction);
+            progression.append(" -> ").append(word);
+            replaced = true;
+            break;
+          }
         }
-        return word.toString();
+      }
+
+      if (!replaced) {
+        if (step >= MIN_STEPS) break;
+      } else {
+        step++;
+      }
     }
 
-    public String generateStringWithProgression() {
-        StringBuilder word = new StringBuilder("S");
-        StringBuilder progression = new StringBuilder("S");
-        final int MAX_STEPS = 20;
+    System.out.println("Steps: " + step);
+    System.out.println("Progression: " + progression);
+    return word.toString();
+  }
 
-        int step = 0;
-        while (step < MAX_STEPS) {
-            boolean foundNonTerminal = false;
+  /**
+   * Converts the grammar to a finite automaton.
+   *
+   * @return the finite automaton
+   */
+  public FiniteAutomaton toFiniteAutomaton() {
+    FiniteAutomaton fa = new FiniteAutomaton(new HashSet<>(Vt));
 
-            for (int i = 0; i < word.length(); i++) {
-                char currentChar = word.charAt(i);
-                if (Vn.contains(currentChar)) {
-                    foundNonTerminal = true;
-
-                    for (String production : P) {
-                        if (production.charAt(0) == currentChar) {
-                            String replaceWith = production.substring(1);
-                            word.replace(i, i + 1, replaceWith);
-                            progression.append(" -> ").append(word);
-                            break;
-                        }
-                    }
-                    break;
-                }
-            }
-
-            if (!foundNonTerminal) {
-                break;
-            }
-
-            step++;
-        }
-
-        return progression.toString();
+    for (char vn : Vn) {
+      fa.addState(String.valueOf(vn), false);
     }
+    fa.addState("F", true);
 
+    productions.forEach(
+        (key, value) ->
+            value.forEach(
+                production -> {
+                  char symbol = production.charAt(0);
+                  String nextState =
+                      production.length() > 1 ? String.valueOf(production.charAt(1)) : "F";
+                  fa.addTransition(String.valueOf(key), symbol, nextState);
+                }));
 
-    public FiniteAutomaton toFiniteAutomaton() {
-        FiniteAutomaton fa = new FiniteAutomaton(new HashSet<>(Vt));
+    productionsTerminals.forEach(
+        (key, value) ->
+            value.forEach(
+                production -> {
+                  fa.addTransition(String.valueOf(key), production.charAt(0), "F");
+                }));
 
-        for (char vn : Vn) {
-            fa.addState(String.valueOf(vn), false);
-        }
-
-        fa.addState("F", true);
-
-        for (String production : P) {
-            String fromState = String.valueOf(production.charAt(0));
-            if (production.length() == 2) {
-                char symbol = production.charAt(0);
-                fa.addTransition(fromState, symbol, "F");
-            } else if (production.length() > 2) {
-                char symbol = production.charAt(1);
-                String toState = String.valueOf(production.charAt(2));
-                fa.addTransition(fromState, symbol, toState);
-            }
-        }
-
-        fa.setStartState(String.valueOf(S));
-
-        for (String production : P) {
-            if (production.length() == 2) {
-                fa.addState(String.valueOf(production.charAt(0)), true);
-            }
-        }
-
-        return fa;
-    }
-
-
+    fa.setStartState(String.valueOf(S));
+    return fa;
+  }
 }
-
