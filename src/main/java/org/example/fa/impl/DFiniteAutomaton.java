@@ -1,14 +1,14 @@
 package org.example.fa.impl;
 
-import org.example.Grammar;
-import org.example.fa.FiniteAutomation;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import org.example.Grammar;
+import org.example.fa.FiniteAutomation;
 
 /** Represents a Deterministic finite automaton. */
 public class DFiniteAutomaton implements FiniteAutomation {
@@ -87,6 +87,26 @@ public class DFiniteAutomaton implements FiniteAutomation {
     return acceptStates.contains(currentState);
   }
 
+  public Set<String> getStates() {
+    return states;
+  }
+
+  public Set<Character> getSigma() {
+    return sigma;
+  }
+
+  public Map<String, Map<Character, String>> getTransitions() {
+    return transitions;
+  }
+
+  public String getStartState() {
+    return startState;
+  }
+
+  public Set<String> getAcceptStates() {
+    return acceptStates;
+  }
+
   /**
    * Converts this finite automaton to an equivalent regular grammar.
    *
@@ -94,32 +114,60 @@ public class DFiniteAutomaton implements FiniteAutomation {
    */
   @Override
   public Grammar toRegularGrammar() {
-    // Initialize the components of the Grammar
     List<Character> Vn = new ArrayList<>();
     List<Character> Vt = new ArrayList<>(sigma);
     Map<Character, List<String>> productions = new HashMap<>();
     char S = startState.charAt(0);
 
-    for (String state : states) {
-      Vn.add(state.charAt(0));
-      productions.putIfAbsent(state.charAt(0), new ArrayList<>());
-    }
+    states.forEach(
+        state -> {
+          Vn.add(state.charAt(0));
+          productions.putIfAbsent(state.charAt(0), new ArrayList<>());
+        });
 
-    for (Map.Entry<String, Map<Character, String>> transitionEntry : transitions.entrySet()) {
-      char fromState = transitionEntry.getKey().charAt(0);
-      for (Map.Entry<Character, String> symbolEntry : transitionEntry.getValue().entrySet()) {
-        char symbol = symbolEntry.getKey();
-        String toStateStr = symbolEntry.getValue();
-        char toState = toStateStr.charAt(0);
-
-        productions.get(fromState).add(symbol + "" + toState);
-
-        if (acceptStates.contains(toStateStr)) {
-          productions.get(fromState).add(String.valueOf(symbol));
-        }
-      }
-    }
+    transitions.forEach(
+        (fromState, toState) ->
+            toState.forEach(
+                (symbol, state) -> {
+                  productions.get(fromState.charAt(0)).add(symbol + "" + state.charAt(0));
+                  if (acceptStates.contains(state)) {
+                    productions.get(fromState.charAt(0)).add(String.valueOf(symbol));
+                  }
+                }));
 
     return new Grammar(Vn, Vt, productions, S);
+  }
+
+  @Override
+  public String toString() {
+    String statesStr = String.join(", ", states);
+    String sigmaStr = sigma.stream().map(Object::toString).collect(Collectors.joining(", "));
+    String startStateStr = startState;
+    String acceptStatesStr = String.join(", ", acceptStates);
+
+    String transitionsStr =
+        transitions.entrySet().stream()
+            .flatMap(
+                entry ->
+                    entry.getValue().entrySet().stream()
+                        .map(
+                            subEntry ->
+                                "    "
+                                    + entry.getKey()
+                                    + " --"
+                                    + subEntry.getKey()
+                                    + "--> "
+                                    + subEntry.getValue()))
+            .collect(Collectors.joining("\n"));
+
+    return String.format(
+        "DFiniteAutomaton{\n"
+            + "  States: [%s]\n"
+            + "  Sigma: [%s]\n"
+            + "  Start State: '%s'\n"
+            + "  Accept States: [%s]\n"
+            + "  Transitions:\n%s\n"
+            + "}",
+        statesStr, sigmaStr, startStateStr, acceptStatesStr, transitionsStr);
   }
 }

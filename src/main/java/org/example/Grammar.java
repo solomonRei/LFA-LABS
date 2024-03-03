@@ -1,11 +1,10 @@
 package org.example;
 
-import org.example.fa.impl.DFiniteAutomaton;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import org.example.fa.impl.DFiniteAutomaton;
 
 /** Represents a context-free grammar. */
 public class Grammar {
@@ -33,13 +32,15 @@ public class Grammar {
     boolean isType2 = true;
     boolean isRightLinear = true;
     boolean isLeftLinear = true;
+    boolean hasContextSensitiveProduction = false;
 
     for (Map.Entry<Character, List<String>> entry : productions.entrySet()) {
+      char lhs = entry.getKey();
       for (String production : entry.getValue()) {
         if (!production.matches("[a-zA-Z]*[A-Z]?")) {
           isType3 = false;
         }
-        if (!production.matches("[a-zA-Z]*")) {
+        if (!production.matches("[a-zA-Zε]*")) {
           isType2 = false;
         }
         if (!production.matches("[a-z]*[A-Z]?")) {
@@ -47,6 +48,10 @@ public class Grammar {
         }
         if (!production.matches("[A-Z]?[a-z]*")) {
           isLeftLinear = false;
+        }
+
+        if (production.length() < String.valueOf(lhs).length()) {
+          hasContextSensitiveProduction = true;
         }
       }
     }
@@ -112,7 +117,7 @@ public class Grammar {
     Random random = new Random();
 
     int step = 0;
-    while (step < MAX_STEPS && word.toString().matches(".*[SAB].*")) {
+    while (step < MAX_STEPS && word.toString().matches(".*[SABC].*")) {
       boolean replaced = false;
       for (int i = 0; i < word.length(); i++) {
         char currentChar = word.charAt(i);
@@ -122,7 +127,7 @@ public class Grammar {
           String chosenProduction = null;
           if (step <= MIN_STEPS) {
             for (String production : possibleProductions) {
-              if (production.matches(".*[SAB].*")) {
+              if (production.matches(".*[SABC].*")) {
                 chosenProduction = production;
                 break;
               }
