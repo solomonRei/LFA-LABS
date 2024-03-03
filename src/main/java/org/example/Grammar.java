@@ -9,35 +9,69 @@ import java.util.Random;
 public class Grammar {
 
   private final List<Character> Vn;
-
   private final List<Character> Vt;
-
   private final Map<Character, List<String>> productions;
-
-  private final Map<Character, List<String>> productionsTerminals;
-
   private final char S;
 
   public Grammar() {
     this.Vn = List.of('S', 'A', 'B');
     this.Vt = List.of('a', 'b', 'c', 'd');
     this.productions =
-        Map.of(
-            'S', List.of("bS", "dA"),
-            'A', List.of("aA", "dB"),
-            'B', List.of("cB"));
-    this.productionsTerminals =
-        Map.of(
-            'A', List.of("b"),
-            'B', List.of("a"));
-
+        Map.of('S', List.of("bS", "dA"), 'A', List.of("aA", "dB", "b"), 'B', List.of("cB", "a"));
     this.S = 'S';
   }
 
   /**
-   * Generates a string based on the grammar.
+   * Classifies the grammar based on the Chomsky hierarchy.
    *
-   * @return the generated string
+   * @return the type of the grammar according to the Chomsky hierarchy.
+   */
+  public String classifyGrammar() {
+    boolean isType3 = true;
+    boolean isType2 = true;
+    boolean isRightLinear = true;
+    boolean isLeftLinear = true;
+
+    for (Map.Entry<Character, List<String>> entry : productions.entrySet()) {
+      for (String production : entry.getValue()) {
+        if (!production.matches("[a-zA-Z]*[A-Z]?")) {
+          isType3 = false;
+        }
+        if (!production.matches("[a-zA-Z]*")) {
+          isType2 = false;
+        }
+        if (!production.matches("[a-z]*[A-Z]?")) {
+          isRightLinear = false;
+        }
+        if (!production.matches("[A-Z]?[a-z]*")) {
+          isLeftLinear = false;
+        }
+      }
+    }
+
+    if (!isType2 && !isType3) {
+      return "Type 0 or Type 1 (Cannot be precisely determined without further analysis)";
+    } else if (isType3) {
+      if (isRightLinear && !isLeftLinear) {
+        return "Type 3 (Regular, Right-Linear)";
+      } else if (!isRightLinear && isLeftLinear) {
+        return "Type 3 (Regular, Left-Linear)";
+      } else if (isRightLinear) {
+        return "Type 3 (Regular, Mixed Linear)";
+      } else {
+        return "Type 3 (Regular)";
+      }
+    } else if (isType2) {
+      return "Type 2 (Context-Free)";
+    } else {
+      return "Type 1 (Context-Sensitive)";
+    }
+  }
+
+  /**
+   * Classifies the grammar based on the Chomsky hierarchy.
+   *
+   * @return the type of the grammar according to the Chomsky hierarchy.
    */
   public String generateString() {
     StringBuilder word = new StringBuilder();
@@ -49,11 +83,6 @@ public class Grammar {
         char currentChar = word.charAt(i);
         if (Vn.contains(currentChar)) {
           List<String> possibleProductions = productions.getOrDefault(currentChar, List.of());
-          List<String> terminalProductions =
-              productionsTerminals.getOrDefault(currentChar, List.of());
-
-          possibleProductions = new java.util.ArrayList<>(possibleProductions);
-          possibleProductions.addAll(terminalProductions);
 
           if (!possibleProductions.isEmpty()) {
             String chosenProduction =
@@ -76,26 +105,32 @@ public class Grammar {
   public String generateStringWithProgression() {
     StringBuilder word = new StringBuilder(String.valueOf(S));
     StringBuilder progression = new StringBuilder(String.valueOf(S));
-    final int MIN_STEPS = 15;
-    final int MAX_STEPS = 20;
+    final int MIN_STEPS = 10;
+    final int MAX_STEPS = 15;
     Random random = new Random();
 
     int step = 0;
-    while (step < MAX_STEPS) {
+    while (step < MAX_STEPS && word.toString().matches(".*[SAB].*")) {
       boolean replaced = false;
       for (int i = 0; i < word.length(); i++) {
         char currentChar = word.charAt(i);
         if (Vn.contains(currentChar)) {
-          List<String> possibleProductions =
-              new java.util.ArrayList<>(productions.getOrDefault(currentChar, List.of()));
+          List<String> possibleProductions = productions.getOrDefault(currentChar, List.of());
 
-          if (step >= MIN_STEPS - 1 && step < MAX_STEPS) {
-            possibleProductions.addAll(productionsTerminals.getOrDefault(currentChar, List.of()));
+          String chosenProduction = null;
+          if (step <= MIN_STEPS) {
+            for (String production : possibleProductions) {
+              if (production.matches(".*[SAB].*")) {
+                chosenProduction = production;
+                break;
+              }
+            }
+          }
+          if (chosenProduction == null) {
+            chosenProduction = possibleProductions.get(random.nextInt(possibleProductions.size()));
           }
 
-          if (!possibleProductions.isEmpty()) {
-            String chosenProduction =
-                possibleProductions.get(random.nextInt(possibleProductions.size()));
+          if (!chosenProduction.isEmpty()) {
             word.replace(i, i + 1, chosenProduction);
             progression.append(" -> ").append(word);
             replaced = true;
@@ -133,17 +168,14 @@ public class Grammar {
         (key, value) ->
             value.forEach(
                 production -> {
-                  char symbol = production.charAt(0);
-                  String nextState =
-                      production.length() > 1 ? String.valueOf(production.charAt(1)) : "F";
-                  fa.addTransition(String.valueOf(key), symbol, nextState);
-                }));
-
-    productionsTerminals.forEach(
-        (key, value) ->
-            value.forEach(
-                production -> {
-                  fa.addTransition(String.valueOf(key), production.charAt(0), "F");
+                  if (production.length() == 1 && Vt.contains(production.charAt(0))) {
+                    fa.addTransition(String.valueOf(key), production.charAt(0), "F");
+                  } else {
+                    char symbol = production.charAt(0);
+                    String nextState =
+                        production.length() > 1 ? String.valueOf(production.charAt(1)) : "F";
+                    fa.addTransition(String.valueOf(key), symbol, nextState);
+                  }
                 }));
 
     fa.setStartState(String.valueOf(S));

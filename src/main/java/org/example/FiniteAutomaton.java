@@ -61,17 +61,6 @@ public class FiniteAutomaton {
     transitions.get(fromState).put(input, toState);
   }
 
-  //    public boolean accepts(String input) {
-  //        String currentState = startState;
-  //        for (char symbol : input.toCharArray()) {
-  //            if (!sigma.contains(symbol) || !transitions.get(currentState).containsKey(symbol)) {
-  //                return false;
-  //            }
-  //            currentState = transitions.get(currentState).get(symbol);
-  //        }
-  //        return acceptStates.contains(currentState);
-  //    }
-
   /**
    * Checks if a string is accepted by the finite automaton.
    *
