@@ -1,12 +1,22 @@
 package org.example;
 
+import org.example.fa.impl.DFiniteAutomaton;
+
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class Main {
 
   public static void main(String[] args) {
-    Grammar grammar = new Grammar();
-    FiniteAutomaton fa = grammar.toFiniteAutomaton();
+    Grammar grammar =
+        new Grammar(
+            List.of('S', 'A', 'B'),
+            List.of('a', 'b', 'c', 'd'),
+            Map.of(
+                'S', List.of("bS", "dA"), 'A', List.of("aA", "dB", "b"), 'B', List.of("cB", "a")),
+            'S');
+    DFiniteAutomaton fa = grammar.toFiniteAutomaton();
     System.out.println(grammar.classifyGrammar());
     Scanner scanner = new Scanner(System.in);
 

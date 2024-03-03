@@ -1,5 +1,7 @@
 package org.example;
 
+import org.example.fa.impl.DFiniteAutomaton;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -13,12 +15,12 @@ public class Grammar {
   private final Map<Character, List<String>> productions;
   private final char S;
 
-  public Grammar() {
-    this.Vn = List.of('S', 'A', 'B');
-    this.Vt = List.of('a', 'b', 'c', 'd');
-    this.productions =
-        Map.of('S', List.of("bS", "dA"), 'A', List.of("aA", "dB", "b"), 'B', List.of("cB", "a"));
-    this.S = 'S';
+  public Grammar(
+      List<Character> Vn, List<Character> Vt, Map<Character, List<String>> productions, char S) {
+    this.Vn = Vn;
+    this.Vt = Vt;
+    this.productions = productions;
+    this.S = S;
   }
 
   /**
@@ -156,8 +158,8 @@ public class Grammar {
    *
    * @return the finite automaton
    */
-  public FiniteAutomaton toFiniteAutomaton() {
-    FiniteAutomaton fa = new FiniteAutomaton(new HashSet<>(Vt));
+  public DFiniteAutomaton toFiniteAutomaton() {
+    DFiniteAutomaton fa = new DFiniteAutomaton(new HashSet<>(Vt));
 
     for (char vn : Vn) {
       fa.addState(String.valueOf(vn), false);
@@ -180,5 +182,19 @@ public class Grammar {
 
     fa.setStartState(String.valueOf(S));
     return fa;
+  }
+
+  @Override
+  public String toString() {
+    return "Grammar{"
+        + "Vn="
+        + Vn
+        + ", Vt="
+        + Vt
+        + ", productions="
+        + productions
+        + ", S="
+        + S
+        + '}';
   }
 }
